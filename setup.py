@@ -16,9 +16,11 @@ setup(
     version='1.0.9.dev0',
     description="opensearch integration with CastleCMS and Plone",
     long_description=long_description,
+    long_description_content_type='text/markdown',
     # Get more from https://pypi.org/classifiers/
     classifiers=[
         "Environment :: Web Environment",
+        "Development Status :: 5 - Production/Stable",
         "Framework :: Plone",
         "Framework :: Plone :: Addon",
         'Framework :: Plone :: 5.0',
