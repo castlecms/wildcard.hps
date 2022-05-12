@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.1.1 (unreleased)
+1.1.1 (2022-05-12)
 ------------------
 
 - add property on wildcard.hps.opensearch.WildcardHPSCatalog for the instance prefix
