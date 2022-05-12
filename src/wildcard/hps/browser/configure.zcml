@@ -1,0 +1,44 @@
+<configure
+    xmlns="http://namespaces.zope.org/zope"
+    xmlns:zcml="http://namespaces.zope.org/zcml"
+    xmlns:browser="http://namespaces.zope.org/browser"
+    i18n_domain="wildcard.hps">
+
+  <browser:page
+    name="wildcardhps-controlpanel"
+    for="Products.CMFPlone.interfaces.IPloneSiteRoot"
+    permission="cmf.ManagePortal"
+    class=".controlpanel.WildcardHPSControlPanelView"
+    layer="..interfaces.IWildcardHPSLayer"
+    />
+
+  <browser:page
+    name="wildcardhps-convert"
+    for="Products.CMFPlone.interfaces.basetool.IPloneCatalogTool"
+    class=".utilviews.Utils"
+    attribute="convert"
+    permission="cmf.ManagePortal"
+    layer="..interfaces.IWildcardHPSLayer"
+    />
+
+  <browser:page
+    name="wildcardhps-rebuild"
+    for="Products.CMFPlone.interfaces.basetool.IPloneCatalogTool"
+    class=".utilviews.Utils"
+    attribute="rebuild"
+    permission="cmf.ManagePortal"
+    layer="..interfaces.IWildcardHPSLayer"
+    />
+
+  <configure zcml:condition="have plone-5" package="Products.CMFPlone.browser">
+    <browser:page
+      name="search"
+      class="wildcard.hps.browser.search.Search"
+      permission="zope2.View"
+      for="plone.app.layout.navigation.interfaces.INavigationRoot"
+      template="templates/search.pt"
+      layer="wildcard.hps.interfaces.IWildcardHPSLayer"
+      />
+  </configure>
+
+</configure>

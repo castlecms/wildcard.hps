@@ -1,0 +1,6 @@
+<layers>
+  <layer
+    name="wildcard.hps"
+    interface="wildcard.hps.interfaces.IWildcardHPSLayer"
+    />
+</layers>
