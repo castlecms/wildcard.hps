@@ -415,15 +415,19 @@ class WildcardHPSCatalog(object):
             index=self.index_name)
 
     @property
+    def instance_prefix(self):
+        return os.getenv("HPS_INSTANCE_INDEX_PREFIX")
+
+    @property
     def index_name(self):
-        instance_prefix = os.getenv("HPS_INSTANCE_INDEX_PREFIX")
-        if instance_prefix is not None:
-            instance_prefix += "-"
+        iprefix = self.instance_prefix
+        if iprefix is not None:
+            iprefix += "-"
         else:
-            instance_prefix = ""
+            iprefix = ""
         site_path = '-'.join(self.catalogtool.getPhysicalPath()[1:]).lower()
         return "{prefix}{site}".format(
-            prefix=instance_prefix,
+            prefix=iprefix,
             site=site_path)
 
     @property
