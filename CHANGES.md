@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.1.2 (unreleased)
+1.2.0 (2022-05-25)
 ------------------
 
 - add HPS_INCLUDE_TRASHED_BY_DEFAULT env for disabling a filter on searchResults
