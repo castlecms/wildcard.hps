@@ -4,7 +4,8 @@ Changelog
 1.1.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- add HPS_INCLUDE_TRASHED_BY_DEFAULT env for disabling a filter on searchResults
+  from WildcardHPSCatalog (see readme entry for HPS_INCLUDE_TRASHED_BY_DEFAULT)
 
 
 1.1.1 (2022-05-12)

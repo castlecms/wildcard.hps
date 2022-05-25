@@ -362,11 +362,15 @@ class WildcardHPSCatalog(object):
                 pass
         self.convertToOpenSearch()
 
+    @property
+    def include_trashed_by_default(self):
+        return getTruthyEnv("HPS_INCLUDE_TRASHED_BY_DEFAULT")
+
     def searchResults(self, REQUEST=None, check_perms=False, **kw):
         enabled = False
         if self.enabled:
             # need to also check if it is a search result we care about
-            # using EL for
+            # using opensearch for
             if getExternalOnlyIndexes().intersection(kw.keys()):
                 enabled = True
         if not enabled:
@@ -381,6 +385,13 @@ class WildcardHPSCatalog(object):
             query = REQUEST.copy()
         else:
             query = {}
+
+        # IF 'trashed' should NOT be included by default AND the caller hasn't explicitly
+        # told us a value for how to query 'trashed', THEN explicitly exclude 'trashed'
+        # entries
+        if not self.include_trashed_by_default and 'trashed' not in kw:
+            kw['trashed'] = False
+
         query.update(kw)
 
         if check_perms:
