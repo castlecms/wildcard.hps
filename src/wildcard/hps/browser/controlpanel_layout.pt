@@ -49,7 +49,7 @@
             Warning
         </dt>
         <dd>
-            Could not connect to specified elastic search server.
+            Could not connect to specified OpenSearch server.
         </dd>
     </dl>
 
@@ -62,12 +62,12 @@
             tal:condition="status">
         <hr />
         <form method="POST"
-              tal:attributes="action string:${purl}/@@elastic-convert">
+              tal:attributes="action string:${purl}/@@wildcardhps-convert">
           <span tal:replace="structure context/@@authenticator/authenticator"/>
           <input type="submit" name="convert" value="Convert Catalog" />
         </form> |
         <form method="POST" class="rebuild"
-              tal:attributes="action string:${purl}/@@elastic-rebuild">
+              tal:attributes="action string:${purl}/@@wildcardhps-rebuild">
           <span tal:replace="structure context/@@authenticator/authenticator"/>
           <input type="submit" name="convert" value="Rebuild Catalog" />
           <span>Could take a very long time. Use carefully.</span>

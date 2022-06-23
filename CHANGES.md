@@ -4,7 +4,7 @@ Changelog
 1.2.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- fix some view name's in the control panel templates
 
 
 1.2.0 (2022-05-25)

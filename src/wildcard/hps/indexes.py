@@ -124,7 +124,7 @@ class EFieldIndex(BaseIndex):
 
 class EDateIndex(BaseIndex):
 
-    # XXX elastic search requires default
+    # XXX opensearch requires default
     # value for searching. This could be a problem...
     missing_date = DateTime('1900/01/01')
 

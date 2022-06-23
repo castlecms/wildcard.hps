@@ -134,7 +134,7 @@ def index_site(site):
             body=mapping,
             index=hpscatalog.index_name)
 
-    # first we want to get all document ids from elastic -- using a scroll in order to
+    # first we want to get all document ids from opensearch -- using a scroll in order to
     # get all index values
     indexed_uids = []
     query = {
