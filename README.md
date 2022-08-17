@@ -66,10 +66,14 @@ Available Environrment Variable Options:
   * `HPS_INSTANCE_INDEX_PREFIX`
     * default: None
     * a string value prepended to index names used by the Plone instances this addon is installed into
-  * HPS_INCLUDE_TRASHED_BY_DEFAULT
+  * `HPS_INCLUDE_TRASHED_BY_DEFAULT`
     * default: no
     * accepted values (all other values are equivalent to False): Yes, True, 1, On
     * will default searchResults to include trashed entries (which are not included by default)
+  * `HPS_FOCE_EXTERNAL_INDEXES`
+    * default: None
+    * a list of object properties that will be included in the externally index object (IE
+      the indexed object in opensearch)
   * `OPENSEARCH_HOSTS`
     * default: https://admin:admin@localhost:9200
     * a list of RFC-1738 formated urls. multiple urls can be specified by putting a space between urls.

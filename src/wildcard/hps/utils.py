@@ -22,11 +22,16 @@ def getUID(obj):
 
 
 def getExternalOnlyIndexes():
+    override_values = os.getenv('HPS_FORCE_EXTERNAL_INDEXES', None)
+    if override_values is not None:
+        return set([a.strip() for a in override_values.split(",")])
+
     try:
+        # default to Title, Description, and SearchableText
         return getUtility(IRegistry).forInterface(
             IWildcardHPSSettings,
             check=False
-        ).external_only_indexes or set()
+        ).external_only_indexes or {'Title', 'Description', 'SearchableText'}
     # a ComponentLookupError would probably indicate that the wildcard.hps addon hasn't
     # been installed in the site, but maybe that HPS_FORCE_ENABLED is set to Yes/On/True
     # which would mean that the registry wouldn't have any settings associated with the

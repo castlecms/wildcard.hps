@@ -4,7 +4,8 @@ Changelog
 1.2.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- add HPS_FORCE_EXTERNAL_INDEXES
+- update default set returned when external indexes setting is not configured yet
 
 
 1.2.1 (2022-06-23)
