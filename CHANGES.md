@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.2.2 (unreleased)
+1.3.0 (2022-08-17)
 ------------------
 
 - add HPS_FORCE_EXTERNAL_INDEXES
