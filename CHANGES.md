@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.3.1 (unreleased)
+1.4.0 (2022-11-04)
 ------------------
 
 - allow a custom prefix to be defined for fetching connection settings from the
