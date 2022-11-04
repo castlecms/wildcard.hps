@@ -125,7 +125,7 @@ class WildcardHPSCatalog(object):
     from patched methods
     '''
 
-    # Keep in mind that other packages, like fbigov.contenttypes, will likely use
+    # Keep in mind that other packages will likely use
     # this object to get a connection object, etc -- that way they don't have to
     # know about all the settings and tidbits for connecting
     #
