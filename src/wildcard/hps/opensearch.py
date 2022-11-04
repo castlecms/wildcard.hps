@@ -130,7 +130,13 @@ class WildcardHPSCatalog(object):
     # know about all the settings and tidbits for connecting
     #
     # that means the init should probably be kept as side-effect free as possible
-    def __init__(self, catalogtool):
+    #
+    # catalogtool is, eg, the result of `api.portal.get_tool('portal_catalog')`
+    # envprefix is the prefix applied to opensearch connection settings fetched from from the environment
+    #   - note: you can see a comprehensive list of these in the README that use the default
+    #           'OPENSEARCH_' prefix
+    def __init__(self, catalogtool, envprefix='OPENSEARCH_'):
+        self.envprefix = envprefix
         self.catalogtool = catalogtool
         self.catalog = catalogtool._catalog
 
@@ -151,7 +157,7 @@ class WildcardHPSCatalog(object):
     def _get_hosts(self):
         # hosts can be RFC-1738 formatted urls
         # multiple hosts can be specified by putting a space between urls
-        hosts_env = os.getenv("OPENSEARCH_HOSTS")
+        hosts_env = os.getenv("{}HOSTS".format(self.envprefix))
         hosts = ['https://admin:admin@localhost:9200']
         if hosts_env is not None:
             hosts = [a for a in hosts_env.split(' ') if len(a.strip()) > 0]
@@ -165,56 +171,56 @@ class WildcardHPSCatalog(object):
             # NODES
 
             # default timeout
-            timeout = getIntOrNone("OPENSEARCH_TIMEOUT")
+            timeout = getIntOrNone("{}TIMEOUT".format(self.envprefix))
             if timeout is not None:
                 kwargs["timeout"] = timeout
 
             # retry connecting to different node when request fails
-            kwargs["retry_on_timeout"] = getTruthyEnv("OPENSEARCH_RETRY_ON_TIMEOUT")
+            kwargs["retry_on_timeout"] = getTruthyEnv("{}RETRY_ON_TIMEOUT".format(self.envprefix))
 
             # SNIFFING
 
             # sniff for nodes before doing anything -- note, no value if not true
-            if getTruthyEnv("OPENSEARCH_SNIFF_ON_START"):
+            if getTruthyEnv("{}SNIFF_ON_START".format(self.envprefix)):
                 kwargs["sniff_on_start"] = True
 
             # refresh nodes after a node fails to respond -- note, no value if not true
-            if getTruthyEnv("OPENSEARCH_SNIFF_ON_CONNECTION_FAIL"):
+            if getTruthyEnv("{}SNIFF_ON_CONNECTION_FAIL".format(self.envprefix)):
                 kwargs["sniff_on_connection_fail"] = True
 
             # refresh nodes on interval
-            sniffer_timeout = getIntOrNone("OPENSEARCH_SNIFFER_TIMEOUT")
+            sniffer_timeout = getIntOrNone("{}SNIFFER_TIMEOUT".format(self.envprefix))
             if sniffer_timeout is not None:
                 kwargs["sniffer_timeout"] = sniffer_timeout
 
             # timeout of sniff request
-            sniff_timeout = getFloatOrNone("OPENSEARCH_SNIFF_TIMEOUT")
+            sniff_timeout = getFloatOrNone("{}SNIFF_TIMEOUT".format(self.envprefix))
             if sniff_timeout is not None:
                 kwargs["sniff_timeout"] = sniff_timeout
 
             # SSL
 
             # turn on SSL
-            kwargs["use_ssl"] = getTruthyEnv("OPENSEARCH_USE_SSL")
+            kwargs["use_ssl"] = getTruthyEnv("{}USE_SSL".format(self.envprefix))
 
             # verify ssl certificates
-            kwargs["verify_certs"] = getTruthyEnv("OPENSEARCH_VERIFY_CERTS")
+            kwargs["verify_certs"] = getTruthyEnv("{}VERIFY_CERTS".format(self.envprefix))
             if not kwargs["verify_certs"]:
                 # when not verifying, warning will be displayed unless disabled
-                kwargs["ssl_show_warn"] = getTruthyEnv("OPENSEARCH_SSL_SHOW_WARN")
+                kwargs["ssl_show_warn"] = getTruthyEnv("{}SSL_SHOW_WARN".format(self.envprefix))
 
             # provide a path to CA certs on disk
-            ca_certs_path = os.getenv("OPENSEARCH_CA_CERTS_PATH")
+            ca_certs_path = os.getenv("{}CA_CERTS_PATH".format(self.envprefix))
             if ca_certs_path is not None:
                 kwargs["ca_certs"] = ca_certs_path
 
             # SSL client auth, PEM formatted SSL client certificate
-            client_cert_path = os.getenv("OPENSEARCH_CLIENT_CERT_PATH")
+            client_cert_path = os.getenv("{}CLIENT_CERT_PATH".format(self.envprefix))
             if client_cert_path is not None:
                 kwargs["client_cert"] = client_cert_path
 
             # SSL client auth, PEM formatted SSL client key
-            client_key_path = os.getenv("OPENSEARCH_CLIENT_KEY_PATH")
+            client_key_path = os.getenv("{}CLIENT_KEY_PATH".format(self.envprefix))
             if client_key_path is not None:
                 kwargs["client_key"] = client_key_path
 
@@ -228,8 +234,8 @@ class WildcardHPSCatalog(object):
             # instead, it appears to expect, at least for now (2022/03/30 -- v1.1.0) that
             # there is an http_auth kwarg passed to the OpenSearch() init, and that will
             # get propagated to all calls to any node
-            http_auth_user = os.getenv("OPENSEARCH_HTTP_USERNAME")
-            http_auth_pass = os.getenv("OPENSEARCH_HTTP_PASSWORD")
+            http_auth_user = os.getenv("{}HTTP_USERNAME".format(self.envprefix))
+            http_auth_pass = os.getenv("{}HTTP_PASSWORD".format(self.envprefix))
             http_auth = ""
             if http_auth_user is not None:
                 http_auth += http_auth_user
