@@ -13,7 +13,7 @@ long_description = '\n\n'.join([
 
 setup(
     name='wildcard.hps',
-    version='1.4.0',
+    version='1.4.1.dev0',
     description="opensearch integration with CastleCMS and Plone",
     long_description=long_description,
     long_description_content_type='text/markdown',
