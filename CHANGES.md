@@ -4,7 +4,8 @@ Changelog
 1.3.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- allow a custom prefix to be defined for fetching connection settings from the
+  environment (default to the previous hard-coded 'OPENSEARCH_' value)
 
 
 1.3.0 (2022-08-17)
