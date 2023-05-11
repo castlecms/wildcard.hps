@@ -170,10 +170,16 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
                 value = None
 
             # Ignore errors in converting to unicode, so json.dumps
-            # does not barf when we're trying to send data to ES.
+            # does not barf when we're trying to send data to opensearch.
             if six.PY2:
                 if isinstance(value, str):
                     value = six.text_type(value, 'utf-8', 'ignore')
+                elif isinstance(value, unicode):
+                    # we're already getting a unicode string, but maybe it's not good utf-8
+                    # so encode it as a string, then use six to convert it back
+                    # to an appropriate unicode string, and in the process ignore characters
+                    # that would otherwise be a problem
+                    value = six.text_type(value.encode('utf-8', 'ignore'), 'utf-8', 'ignore')
             else:
                 if isinstance(value, bytes):
                     value = value.decode('utf-8', 'ignore')
@@ -190,11 +196,17 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
             try:
                 val = indexer()
                 if six.PY2:
-                    if isinstance(value, str):
-                        value = six.text_type(value, 'utf-8', 'ignore')
+                    if isinstance(val, str):
+                        value = six.text_type(val, 'utf-8', 'ignore')
+                    elif isinstance(val, unicode):
+                        # we're already getting a unicode string, but maybe it's not good utf-8
+                        # so encode it as a string, then use six to convert it back
+                        # to an appropriate unicode string, and in the process ignore characters
+                        # that would otherwise be a problem
+                        value = six.text_type(val.encode('utf-8', 'ignore'), 'utf-8', 'ignore')
                 else:
-                    if isinstance(value, bytes):
-                        value = value.decode('utf-8', 'ignore')
+                    if isinstance(val, bytes):
+                        value = val.decode('utf-8', 'ignore')
                 index_data[name] = val
             except Exception:
                 logger.error('Error indexing value: %s: %s\n%s' % (
