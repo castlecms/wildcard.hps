@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.4.1 (unreleased)
+1.4.1 (2023-05-11)
 ------------------
 
 - handle unicode error and fix bug in hook when getting index data
