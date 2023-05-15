@@ -149,6 +149,40 @@ def get_wrapped_object(obj, hpscatalog):
     return wrapped_object
 
 
+# Ignore errors in converting to unicode, so json.dumps
+# does not barf when we're trying to send data to opensearch.
+def fix_unicode_for_opensearch(value):
+    val = value
+
+    if not six.PY2 and isinstance(val, bytes):
+        val = val.decode('utf-8', 'ignore')
+    elif six.PY2 and isinstance(val, str):
+        val = six.text_type(val, 'utf-8', 'ignore')
+    elif six.PY2 and isinstance(val, unicode):
+        # we're already getting a unicode string, but maybe it's not good utf-8
+        # so encode it as a string, then use six to convert it back
+        # to an appropriate unicode string, and in the process ignore characters
+        # that would otherwise be a problem
+        val = six.text_type(val.encode('utf-8', 'ignore'), 'utf-8', 'ignore')
+    elif isinstance(val, tuple):
+        vallist = []
+        for v in val:
+            vallist.append(fix_unicode_for_opensearch(v))
+        val = tuple(vallist)
+    elif isinstance(val, list):
+        vallist = []
+        for v in val:
+            vallist.append(fix_unicode_for_opensearch(v))
+        val = vallist
+    elif isinstance(val, dict):
+        valdict = {}
+        for (key, v) in val.items():
+            valdict[key] = fix_unicode_for_opensearch(v)
+        val = valdict
+
+    return val
+
+
 def get_index_data(obj, hpscatalog):  # noqa: C901
     catalog = hpscatalog.catalogtool._catalog
 
@@ -169,20 +203,7 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
                 # yes, we'll index null data...
                 value = None
 
-            # Ignore errors in converting to unicode, so json.dumps
-            # does not barf when we're trying to send data to opensearch.
-            if six.PY2:
-                if isinstance(value, str):
-                    value = six.text_type(value, 'utf-8', 'ignore')
-                elif isinstance(value, unicode):
-                    # we're already getting a unicode string, but maybe it's not good utf-8
-                    # so encode it as a string, then use six to convert it back
-                    # to an appropriate unicode string, and in the process ignore characters
-                    # that would otherwise be a problem
-                    value = six.text_type(value.encode('utf-8', 'ignore'), 'utf-8', 'ignore')
-            else:
-                if isinstance(value, bytes):
-                    value = value.decode('utf-8', 'ignore')
+            value = fix_unicode_for_opensearch(value)
 
             index_data[index_name] = value
 
@@ -194,19 +215,7 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
         indexer = queryMultiAdapter((obj, hpscatalog.catalogtool), IIndexer, name=name)
         if indexer is not None:
             try:
-                val = indexer()
-                if six.PY2:
-                    if isinstance(val, str):
-                        value = six.text_type(val, 'utf-8', 'ignore')
-                    elif isinstance(val, unicode):
-                        # we're already getting a unicode string, but maybe it's not good utf-8
-                        # so encode it as a string, then use six to convert it back
-                        # to an appropriate unicode string, and in the process ignore characters
-                        # that would otherwise be a problem
-                        value = six.text_type(val.encode('utf-8', 'ignore'), 'utf-8', 'ignore')
-                else:
-                    if isinstance(val, bytes):
-                        value = val.decode('utf-8', 'ignore')
+                val = fix_unicode_for_opensearch(indexer())
                 index_data[name] = val
             except Exception:
                 logger.error('Error indexing value: %s: %s\n%s' % (
@@ -217,6 +226,7 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
             val = getattr(obj, name, None)
             if callable(val):
                 val = val()
+            val = fix_unicode_for_opensearch(val)
             index_data[name] = val
 
     for _, adapter in getAdapters((obj,), IAdditionalIndexDataProvider):

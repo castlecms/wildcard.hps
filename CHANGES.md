@@ -4,7 +4,8 @@ Changelog
 1.4.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- abstract unicode handling code for hook when getting index data, and handle
+  tuples, lists, and dict values
 
 
 1.4.1 (2023-05-11)
