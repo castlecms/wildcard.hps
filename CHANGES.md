@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.4.2 (unreleased)
+1.4.2 (2023-05-15)
 ------------------
 
 - abstract unicode handling code for hook when getting index data, and handle
