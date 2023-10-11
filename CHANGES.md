@@ -4,7 +4,7 @@ Changelog
 1.4.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- missing '.items()'
 
 
 1.4.3 (2023-10-11)
