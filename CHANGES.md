@@ -4,7 +4,7 @@ Changelog
 1.4.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- handle unicode for index data derived from IAdditionalIndexDataProvider adapters
 
 
 1.4.2 (2023-05-15)

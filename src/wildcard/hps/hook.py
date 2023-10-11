@@ -230,7 +230,10 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
             index_data[name] = val
 
     for _, adapter in getAdapters((obj,), IAdditionalIndexDataProvider):
-        index_data.update(adapter(hpscatalog, index_data))
+        fixeddata = {}
+        for key, val in adapter(hpscatalog, index_data):
+            fixeddata[key] = fix_unicode_for_opensearch(val)
+        index_data.update(fixeddata)
 
     return index_data
 
