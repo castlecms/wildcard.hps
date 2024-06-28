@@ -41,7 +41,11 @@ def _unindexObject(self, ob):
     # same reason as the patch above, we need the actual object passed along
     # this handle dexterity types
     path = '/'.join(ob.getPhysicalPath())
-    return self.uncatalog_object(path, obj=ob)
+    # Python3 TODO - "uncatalog_object" no longer accepts an obj for some reason
+    # This throws an error and prevents a new site from being built
+    # Needs further scrutiny
+    # return self.uncatalog_object(path, obj=ob)
+    return self.uncatalog_object(path)
 
 
 def moveObjectsByDelta(self, ids, delta, subset_ids=None,
