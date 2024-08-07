@@ -7,7 +7,7 @@ from datetime import datetime, date
 from Missing import MV
 from Products.ExtendedPathIndex.ExtendedPathIndex import ExtendedPathIndex
 from Products.PluginIndexes.BooleanIndex.BooleanIndex import BooleanIndex
-from Products.PluginIndexes.common import safe_callable
+from Products.PluginIndexes.util import safe_callable
 from Products.PluginIndexes.DateIndex.DateIndex import DateIndex
 from Products.PluginIndexes.DateRangeIndex.DateRangeIndex import DateRangeIndex
 from Products.PluginIndexes.FieldIndex.FieldIndex import FieldIndex

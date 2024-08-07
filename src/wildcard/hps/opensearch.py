@@ -8,7 +8,7 @@ from plone.registry.interfaces import IRegistry
 from Products.CMFCore.permissions import AccessInactivePortalContent
 from Products.CMFCore.utils import _checkPermission
 from Products.CMFCore.utils import _getAuthenticatedUser
-from Products.ZCatalog.Lazy import LazyMap
+from ZTUtils.Lazy import LazyMap
 from opensearchpy import OpenSearch
 from opensearchpy.exceptions import NotFoundError, TransportError
 from zope.component import ComponentLookupError

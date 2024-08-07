@@ -193,11 +193,12 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
         if index is not None:
             try:
                 value = index.get_value(wrapped_object)
-            except Exception:
-                logger.error('Error indexing value: %s: %s\n%s' % (
-                    '/'.join(obj.getPhysicalPath()),
-                    index_name,
-                    traceback.format_exc()))
+            except Exception as exc:  # NOQA W0703
+                if hasattr(obj, 'getPhysicalPath'):
+                    path = "/".join(obj.getPhysicalPath())
+                    logger.error(f"Error indexing value: {path}: {index_name}\n{exc}")
+                else:  # portal obj has no getPhysicalPath attr for one
+                    logger.error(f"Error indexing value: {obj}: {index_name}\n{exc}")
                 value = None
             if value in (None, 'None'):
                 # yes, we'll index null data...

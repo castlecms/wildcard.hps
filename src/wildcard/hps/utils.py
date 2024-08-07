@@ -4,7 +4,7 @@ import os
 from wildcard.hps.interfaces import IWildcardHPSSettings
 from plone.registry.interfaces import IRegistry
 from zope.component import getUtility
-from zope.component.interfaces import ComponentLookupError
+from zope.component import ComponentLookupError
 
 
 try:
