@@ -163,87 +163,92 @@ class WildcardHPSCatalog(object):
             hosts = [a for a in hosts_env.split(' ') if len(a.strip()) > 0]
         return hosts
 
+    def get_connection_kwargs(self):
+        kwargs = dict()
+
+        # NODES
+
+        # default timeout
+        timeout = getIntOrNone("{}TIMEOUT".format(self.envprefix))
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+
+        # retry connecting to different node when request fails
+        kwargs["retry_on_timeout"] = getTruthyEnv("{}RETRY_ON_TIMEOUT".format(self.envprefix))
+
+        # SNIFFING
+
+        # sniff for nodes before doing anything -- note, no value if not true
+        if getTruthyEnv("{}SNIFF_ON_START".format(self.envprefix)):
+            kwargs["sniff_on_start"] = True
+
+        # refresh nodes after a node fails to respond -- note, no value if not true
+        if getTruthyEnv("{}SNIFF_ON_CONNECTION_FAIL".format(self.envprefix)):
+            kwargs["sniff_on_connection_fail"] = True
+
+        # refresh nodes on interval
+        sniffer_timeout = getIntOrNone("{}SNIFFER_TIMEOUT".format(self.envprefix))
+        if sniffer_timeout is not None:
+            kwargs["sniffer_timeout"] = sniffer_timeout
+
+        # timeout of sniff request
+        sniff_timeout = getFloatOrNone("{}SNIFF_TIMEOUT".format(self.envprefix))
+        if sniff_timeout is not None:
+            kwargs["sniff_timeout"] = sniff_timeout
+
+        # SSL
+
+        # turn on SSL
+        kwargs["use_ssl"] = getTruthyEnv("{}USE_SSL".format(self.envprefix))
+
+        # verify ssl certificates
+        kwargs["verify_certs"] = getTruthyEnv("{}VERIFY_CERTS".format(self.envprefix))
+        if not kwargs["verify_certs"]:
+            # when not verifying, warning will be displayed unless disabled
+            kwargs["ssl_show_warn"] = getTruthyEnv("{}SSL_SHOW_WARN".format(self.envprefix))
+
+        # provide a path to CA certs on disk
+        ca_certs_path = os.getenv("{}CA_CERTS_PATH".format(self.envprefix))
+        if ca_certs_path is not None:
+            kwargs["ca_certs"] = ca_certs_path
+
+        # SSL client auth, PEM formatted SSL client certificate
+        client_cert_path = os.getenv("{}CLIENT_CERT_PATH".format(self.envprefix))
+        if client_cert_path is not None:
+            kwargs["client_cert"] = client_cert_path
+
+        # SSL client auth, PEM formatted SSL client key
+        client_key_path = os.getenv("{}CLIENT_KEY_PATH".format(self.envprefix))
+        if client_key_path is not None:
+            kwargs["client_key"] = client_key_path
+
+        # CONNECTION
+
+        # for some reason, the connection object, while it acepts an RFC-1738 formatted
+        # URL list for the hosts parameter, and parses out the http_auth information
+        # just fine from each of those listed node URL's, it doesn't appear
+        # to propagate the credentials to connections made to individual nodes.
+        #
+        # instead, it appears to expect, at least for now (2022/03/30 -- v1.1.0) that
+        # there is an http_auth kwarg passed to the OpenSearch() init, and that will
+        # get propagated to all calls to any node
+        http_auth_user = os.getenv("{}HTTP_USERNAME".format(self.envprefix))
+        http_auth_pass = os.getenv("{}HTTP_PASSWORD".format(self.envprefix))
+        http_auth = ""
+        if http_auth_user is not None:
+            http_auth += http_auth_user
+        http_auth += ":"
+        if http_auth_pass is not None:
+            http_auth += http_auth_pass
+        if http_auth.strip() != ":":
+            kwargs["http_auth"] = http_auth
+
+        return kwargs
+
     @property
     def connection(self):
         if self._conn is None:
-            kwargs = dict()
-
-            # NODES
-
-            # default timeout
-            timeout = getIntOrNone("{}TIMEOUT".format(self.envprefix))
-            if timeout is not None:
-                kwargs["timeout"] = timeout
-
-            # retry connecting to different node when request fails
-            kwargs["retry_on_timeout"] = getTruthyEnv("{}RETRY_ON_TIMEOUT".format(self.envprefix))
-
-            # SNIFFING
-
-            # sniff for nodes before doing anything -- note, no value if not true
-            if getTruthyEnv("{}SNIFF_ON_START".format(self.envprefix)):
-                kwargs["sniff_on_start"] = True
-
-            # refresh nodes after a node fails to respond -- note, no value if not true
-            if getTruthyEnv("{}SNIFF_ON_CONNECTION_FAIL".format(self.envprefix)):
-                kwargs["sniff_on_connection_fail"] = True
-
-            # refresh nodes on interval
-            sniffer_timeout = getIntOrNone("{}SNIFFER_TIMEOUT".format(self.envprefix))
-            if sniffer_timeout is not None:
-                kwargs["sniffer_timeout"] = sniffer_timeout
-
-            # timeout of sniff request
-            sniff_timeout = getFloatOrNone("{}SNIFF_TIMEOUT".format(self.envprefix))
-            if sniff_timeout is not None:
-                kwargs["sniff_timeout"] = sniff_timeout
-
-            # SSL
-
-            # turn on SSL
-            kwargs["use_ssl"] = getTruthyEnv("{}USE_SSL".format(self.envprefix))
-
-            # verify ssl certificates
-            kwargs["verify_certs"] = getTruthyEnv("{}VERIFY_CERTS".format(self.envprefix))
-            if not kwargs["verify_certs"]:
-                # when not verifying, warning will be displayed unless disabled
-                kwargs["ssl_show_warn"] = getTruthyEnv("{}SSL_SHOW_WARN".format(self.envprefix))
-
-            # provide a path to CA certs on disk
-            ca_certs_path = os.getenv("{}CA_CERTS_PATH".format(self.envprefix))
-            if ca_certs_path is not None:
-                kwargs["ca_certs"] = ca_certs_path
-
-            # SSL client auth, PEM formatted SSL client certificate
-            client_cert_path = os.getenv("{}CLIENT_CERT_PATH".format(self.envprefix))
-            if client_cert_path is not None:
-                kwargs["client_cert"] = client_cert_path
-
-            # SSL client auth, PEM formatted SSL client key
-            client_key_path = os.getenv("{}CLIENT_KEY_PATH".format(self.envprefix))
-            if client_key_path is not None:
-                kwargs["client_key"] = client_key_path
-
-            # CONNECTION
-
-            # for some reason, the connection object, while it acepts an RFC-1738 formatted
-            # URL list for the hosts parameter, and parses out the http_auth information
-            # just fine from each of those listed node URL's, it doesn't appear
-            # to propagate the credentials to connections made to individual nodes.
-            #
-            # instead, it appears to expect, at least for now (2022/03/30 -- v1.1.0) that
-            # there is an http_auth kwarg passed to the OpenSearch() init, and that will
-            # get propagated to all calls to any node
-            http_auth_user = os.getenv("{}HTTP_USERNAME".format(self.envprefix))
-            http_auth_pass = os.getenv("{}HTTP_PASSWORD".format(self.envprefix))
-            http_auth = ""
-            if http_auth_user is not None:
-                http_auth += http_auth_user
-            http_auth += ":"
-            if http_auth_pass is not None:
-                http_auth += http_auth_pass
-            if http_auth.strip() != ":":
-                kwargs["http_auth"] = http_auth
+            kwargs = self.get_connection_kwargs()
 
             self._conn = OpenSearch(hosts=self._get_hosts(), **kwargs)
         return self._conn
