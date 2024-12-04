@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Installer for the collective.elasticsearch package."""
+"""Installer for the wildcard.hps package."""
 
 from setuptools import find_packages
 from setuptools import setup
