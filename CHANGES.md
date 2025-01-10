@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.4.5 (unreleased)
+1.4.5 (2025-01-10)
 ------------------
 
 - add explicit env var for disabling collection of host info for nodes during opensearch sniffing
