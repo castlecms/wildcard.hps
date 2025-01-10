@@ -6,6 +6,7 @@ Changelog
 
 - add explicit env var for disabling collection of host info for nodes during opensearch sniffing
 - explicitly set the sniffer_timeout, sniff_on_start, and sniff_on_connection_fail parameters
+- move fetching connection kwargs to it's own method
 
 
 1.4.4 (2023-10-11)
