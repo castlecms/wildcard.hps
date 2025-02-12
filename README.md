@@ -56,6 +56,10 @@ Available Environrment Variable Options:
     * path to a zope.conf to get a Zope app instance
     * NOTE: this is only needed for the `reindex_hps` script that gets installed.
       See `wildcard/hps/scripts/reindex.py`.
+  * `HPS_REINDEX_SCROLL`
+    * amount of time to tell opensearch to hold a scroll in memory, defaults to '2s'
+    * NOTE: this is only useful for the `reindex_hps` script that gets installed.
+      See `wildcard/hps/scripts/reindex.py`.
   * `HPS_OVERRIDE_LOGGING`
     * if present, will tell the `reindex_hps` script to override the root logging
       configuration, and print logging to console at INFO level.

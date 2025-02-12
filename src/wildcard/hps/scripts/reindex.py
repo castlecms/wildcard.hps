@@ -109,7 +109,7 @@ def setup_site(site):
     setRequest(site.REQUEST)
 
 
-def index_site(site):
+def index_site(site, scroll='2s'):
     setup_site(site)
     catalog = api.portal.get_tool('portal_catalog')
     hpscatalog = WildcardHPSCatalog(catalog)
@@ -145,7 +145,7 @@ def index_site(site):
     logger.info("getting UID's from hps index...")
     result = hpscatalog.connection.search(
         index=hpscatalog.index_name,
-        scroll='2s',
+        scroll=scroll,
         size=10000,  # maximum result size possible
         body=query,
         # don't want any fields returned, since we just want the ID, which maps to a uid
@@ -158,7 +158,7 @@ def index_site(site):
     while scroll_id:
         result = hpscatalog.connection.scroll(
             scroll_id=scroll_id,
-            scroll='2s',
+            scroll=scroll,
         )
         numresults = len(result['hits']['hits'])
         if numresults == 0:
@@ -217,13 +217,15 @@ def run(app):
     user = app.acl_users.getUser('admin')
     newSecurityManager(None, user.__of__(app.acl_users))
 
+    scroll = os.getenv("HPS_REINDEX_SCROLL", "2s")
+
     starttime = datetime.datetime.now()
 
     for oid in app.objectIds():
         obj = app[oid]
 
         if IPloneSiteRoot.providedBy(obj):
-            index_site(obj)
+            index_site(obj, scroll=scroll)
 
     endtime = datetime.datetime.now()
     deltat = endtime - starttime
