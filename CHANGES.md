@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.4.6 (unreleased)
+1.4.6 (2025-02-12)
 ------------------
 
 - make scroll configurable for reindex script
