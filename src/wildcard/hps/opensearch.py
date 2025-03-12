@@ -177,19 +177,34 @@ class WildcardHPSCatalog(object):
         kwargs["retry_on_timeout"] = getTruthyEnv("{}RETRY_ON_TIMEOUT".format(self.envprefix))
 
         # SNIFFING
+        if getTruthyEnv("{}DISABLE_HOST_INFO_CALLBACK".format(self.envprefix)):
+            def no_host_info_callback(*args, **kwargs):
+                return None
 
-        # sniff for nodes before doing anything -- note, no value if not true
-        if getTruthyEnv("{}SNIFF_ON_START".format(self.envprefix)):
-            kwargs["sniff_on_start"] = True
+            # if the "host_info_callback" method returns None for all hosts it's given,
+            # then none of the host info from /_nodes/_all/http calls will be used
+            # to modify the statically defined host list given to the connection
+            # initially
+            #
+            # if you truly don't want sniffing to happen at all during the use of
+            # the OpenSearch() object, you'll want to disable this. Otherwise there's
+            # several different times and ways that it'll attempt to sniff (or do the
+            # equivalent), even if it doesn't sniff "on_start" or "on_connection_fail"
+            kwargs["host_info_callback"] = no_host_info_callback
 
-        # refresh nodes after a node fails to respond -- note, no value if not true
-        if getTruthyEnv("{}SNIFF_ON_CONNECTION_FAIL".format(self.envprefix)):
-            kwargs["sniff_on_connection_fail"] = True
+        # sniff for nodes before doing anything
+        kwargs["sniff_on_start"] = getTruthyEnv("{}SNIFF_ON_START".format(self.envprefix))
+
+        # refresh nodes after a node fails to respond
+        kwargs["sniff_on_connection_fail"] = getTruthyEnv("{}SNIFF_ON_CONNECTION_FAIL".format(self.envprefix))
 
         # refresh nodes on interval
-        sniffer_timeout = getIntOrNone("{}SNIFFER_TIMEOUT".format(self.envprefix))
-        if sniffer_timeout is not None:
-            kwargs["sniffer_timeout"] = sniffer_timeout
+        #
+        # keep in mind, if DISABLE_HOST_INFO_CALLBACK is not TRUE, and SNIFF_ON_START and
+        # SNIFF_ON_CONNECTION_FAIL are both FALSE, then there are still conditions which
+        # OpenSearch() will query node info for updated hosts to connect to... and one of
+        # those ways might be if there is any sniffer timeout value other than None.
+        kwargs["sniffer_timeout"] = getIntOrNone("{}SNIFFER_TIMEOUT".format(self.envprefix))
 
         # timeout of sniff request
         sniff_timeout = getFloatOrNone("{}SNIFF_TIMEOUT".format(self.envprefix))

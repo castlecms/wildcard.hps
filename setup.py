@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Installer for the collective.elasticsearch package."""
+"""Installer for the wildcard.hps package."""
 
 from setuptools import find_packages
 from setuptools import setup
@@ -13,7 +13,7 @@ long_description = '\n\n'.join([
 
 setup(
     name='wildcard.hps',
-    version='1.4.5.dev0',
+    version='1.4.7.dev0',
     description="opensearch integration with CastleCMS and Plone",
     long_description=long_description,
     long_description_content_type='text/markdown',

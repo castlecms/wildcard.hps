@@ -1,10 +1,24 @@
 Changelog
 =========
 
-1.4.5 (unreleased)
+1.4.7 (unreleased)
 ------------------
 
 - Nothing changed yet.
+
+
+1.4.6 (2025-02-12)
+------------------
+
+- make scroll configurable for reindex script
+
+
+1.4.5 (2025-01-10)
+------------------
+
+- add explicit env var for disabling collection of host info for nodes during opensearch sniffing
+- explicitly set the sniffer_timeout, sniff_on_start, and sniff_on_connection_fail parameters
+- move fetching connection kwargs to it's own method
 
 
 1.4.4 (2023-10-11)

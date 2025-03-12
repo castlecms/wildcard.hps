@@ -56,6 +56,10 @@ Available Environrment Variable Options:
     * path to a zope.conf to get a Zope app instance
     * NOTE: this is only needed for the `reindex_hps` script that gets installed.
       See `wildcard/hps/scripts/reindex.py`.
+  * `HPS_REINDEX_SCROLL`
+    * amount of time to tell opensearch to hold a scroll in memory, defaults to '2s'
+    * NOTE: this is only useful for the `reindex_hps` script that gets installed.
+      See `wildcard/hps/scripts/reindex.py`.
   * `HPS_OVERRIDE_LOGGING`
     * if present, will tell the `reindex_hps` script to override the root logging
       configuration, and print logging to console at INFO level.
@@ -92,6 +96,11 @@ Available Environrment Variable Options:
     * default: Off
     * accepted values (all other values are equivalent to False): Yes, True, 1, On
     * retry connection to different node when connection fails
+  * `OPENSEARCH_DISABLE_HOST_INFO_CALLBACK`
+    * default: False
+    * accepted values (all other values are equivalent to False): Yes, True, 1, On
+    * if enabled, will effectivly disable all sniffing and force the use of the specific
+      hosts given by `OPENSEARCH_HOSTS`
   * `OPENSEARCH_SNIFF_ON_START`
     * default: False
     * accepted values (all other values are equivalent to False): Yes, True, 1, On
@@ -102,7 +111,8 @@ Available Environrment Variable Options:
     * refresh nodes after a node fails to respond
   * `OPENSEARCH_SNIFFER_TIMEOUT`
     * default: None
-    * refresh node list on this time (in seconds) interval
+    * refresh node list on this time (in seconds) interval -- note, you may want to
+      not include this value if you want to completely disable sniffing
   * `OPENSEARCH_SNIFF_TIMEOUT`
     * default: 0.1
     * timeout of sniff request
