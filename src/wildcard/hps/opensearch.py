@@ -3,49 +3,41 @@ import math
 import os
 
 from DateTime import DateTime
+from opensearchpy import OpenSearch
+from opensearchpy.exceptions import NotFoundError, TransportError
 from plone import api
 from plone.registry.interfaces import IRegistry
 from Products.CMFCore.permissions import AccessInactivePortalContent
-from Products.CMFCore.utils import _checkPermission
-from Products.CMFCore.utils import _getAuthenticatedUser
-from ZTUtils.Lazy import LazyMap
-from opensearchpy import OpenSearch
-from opensearchpy.exceptions import NotFoundError, TransportError
-from zope.component import ComponentLookupError
-from zope.component import getMultiAdapter
-from zope.component import getUtility
+from Products.CMFCore.utils import _checkPermission, _getAuthenticatedUser
+from zope.component import ComponentLookupError, getMultiAdapter, getUtility
 from zope.globalrequest import getRequest
-from zope.interface import implementer
-from zope.interface import alsoProvides
+from zope.interface import alsoProvides, implementer
+from ZTUtils.Lazy import LazyMap
 
-from wildcard.hps import hook
-from wildcard.hps import logger
+from wildcard.hps import hook, logger
 from wildcard.hps.brain import BrainFactory
-from wildcard.hps.interfaces import IWildcardHPSCatalog
-from wildcard.hps.interfaces import IWildcardHPSSettings
-from wildcard.hps.interfaces import IMappingProvider
-from wildcard.hps.interfaces import IQueryAssembler
-from wildcard.hps.interfaces import IReindexActive
-from wildcard.hps.utils import getExternalOnlyIndexes
-from wildcard.hps.utils import getTruthyEnv
-from wildcard.hps.utils import getIntOrNone
-from wildcard.hps.utils import getFloatOrNone
+from wildcard.hps.interfaces import (
+    IMappingProvider,
+    IQueryAssembler,
+    IReindexActive,
+    IWildcardHPSCatalog,
+    IWildcardHPSSettings,
+)
+from wildcard.hps.utils import getExternalOnlyIndexes, getFloatOrNone, getIntOrNone, getTruthyEnv
 
-
-CONVERTED_ATTR = '_hpsconverted'
-INDEX_VERSION_ATTR = '_hpsindexversion'
+CONVERTED_ATTR = "_hpsconverted"
+INDEX_VERSION_ATTR = "_hpsindexversion"
 
 
 class SearchResult(object):
-
     def __init__(self, hpscatalog, query, **query_params):
-        if 'sort' in query_params:
-            raise Exception('bad query param')
-        if 'start' in query_params:
-            raise Exception('bad query param')
+        if "sort" in query_params:
+            raise Exception("bad query param")
+        if "start" in query_params:
+            raise Exception("bad query param")
 
         self.hpscatalog = hpscatalog
-        self.bulk_size = hpscatalog.get_setting('bulk_size', 50)
+        self.bulk_size = hpscatalog.get_setting("bulk_size", 50)
         qassembler = getMultiAdapter((getRequest(), hpscatalog), IQueryAssembler)
         dquery, self.sort = qassembler.normalize(query)
         self.query = qassembler(dquery)
@@ -54,18 +46,16 @@ class SearchResult(object):
         # but the start index of the bulk size for the
         # results it holds. This way we can skip around
         # for result data in a result object
-        result = hpscatalog._search(self.query, sort=self.sort, **query_params)['hits']
-        self.results = {
-            0: result['hits']
-        }
-        self.count = result['total']['value']
+        result = hpscatalog._search(self.query, sort=self.sort, **query_params)["hits"]
+        self.results = {0: result["hits"]}
+        self.count = result["total"]["value"]
         self.query_params = query_params
 
     def __len__(self):
         return self.count
 
     def __getitem__(self, key):
-        '''
+        """
         Lazy loading es results with negative index support.
         We store the results in buckets of what the bulk size is.
         This is so you can skip around in the indexes without needing
@@ -80,7 +70,7 @@ class SearchResult(object):
             - self[-1]: 500 bucket: 24 item
             - self[-2]: 500 bucket: 23 item
             - self[-55]: 450 bucket: 19 item
-        '''
+        """
         if isinstance(key, slice):
             return [self[i] for i in range(key.start, key.stop)]
         else:
@@ -99,31 +89,26 @@ class SearchResult(object):
                 start = result_key
                 result_index = key % self.bulk_size
             elif key < 0:
-                last_key = int(math.floor(
-                    float(self.count) / float(self.bulk_size)
-                )) * self.bulk_size
-                start = result_key = last_key - (
-                    (abs(key) / self.bulk_size) * self.bulk_size)
+                last_key = int(math.floor(float(self.count) / float(self.bulk_size))) * self.bulk_size
+                start = result_key = last_key - ((abs(key) / self.bulk_size) * self.bulk_size)
                 if last_key == result_key:
                     result_index = key
                 else:
-                    result_index = (key % self.bulk_size) - (
-                        self.bulk_size - (self.count % last_key)
-                    )
+                    result_index = (key % self.bulk_size) - (self.bulk_size - (self.count % last_key))
 
             if result_key not in self.results:
                 self.results[result_key] = self.hpscatalog._search(
-                    self.query, sort=self.sort, start=start,
-                    **self.query_params)['hits']['hits']
+                    self.query, sort=self.sort, start=start, **self.query_params
+                )["hits"]["hits"]
 
             return self.results[result_key][result_index]
 
 
 @implementer(IWildcardHPSCatalog)
 class WildcardHPSCatalog(object):
-    '''
+    """
     from patched methods
-    '''
+    """
 
     # Keep in mind that other packages will likely use
     # this object to get a connection object, etc -- that way they don't have to
@@ -135,7 +120,7 @@ class WildcardHPSCatalog(object):
     # envprefix is the prefix applied to opensearch connection settings fetched from from the environment
     #   - note: you can see a comprehensive list of these in the README that use the default
     #           'OPENSEARCH_' prefix
-    def __init__(self, catalogtool, envprefix='OPENSEARCH_'):
+    def __init__(self, catalogtool, envprefix="OPENSEARCH_"):
         self.envprefix = envprefix
         self.catalogtool = catalogtool
         self.catalog = catalogtool._catalog
@@ -143,10 +128,7 @@ class WildcardHPSCatalog(object):
         try:
             registry = getUtility(IRegistry)
             try:
-                self.registry = registry.forInterface(
-                    IWildcardHPSSettings,
-                    check=False
-                )
+                self.registry = registry.forInterface(IWildcardHPSSettings, check=False)
             except Exception:
                 self.registry = None
         except ComponentLookupError:
@@ -158,9 +140,9 @@ class WildcardHPSCatalog(object):
         # hosts can be RFC-1738 formatted urls
         # multiple hosts can be specified by putting a space between urls
         hosts_env = os.getenv("{}HOSTS".format(self.envprefix))
-        hosts = ['https://admin:admin@localhost:9200']
+        hosts = ["https://admin:admin@localhost:9200"]
         if hosts_env is not None:
-            hosts = [a for a in hosts_env.split(' ') if len(a.strip()) > 0]
+            hosts = [a for a in hosts_env.split(" ") if len(a.strip()) > 0]
         return hosts
 
     @property
@@ -249,22 +231,18 @@ class WildcardHPSCatalog(object):
         return self._conn
 
     def _search(self, query, sort=None, **query_params):
-        '''
-        '''
-        if 'start' in query_params:
-            query_params['from_'] = query_params.pop('start')
+        """ """
+        if "start" in query_params:
+            query_params["from_"] = query_params.pop("start")
 
-        query_params['stored_fields'] = query_params.get(
-            'stored_fields', 'path.path')
-        query_params['size'] = self.get_setting('bulk_size', 50)
+        query_params["stored_fields"] = query_params.get("stored_fields", "path.path")
+        query_params["size"] = self.get_setting("bulk_size", 50)
 
-        body = {'query': query}
+        body = {"query": query}
         if sort is not None:
-            body['sort'] = sort
+            body["sort"] = sort
 
-        return self.connection.search(index=self.index_name,
-                                      body=body,
-                                      **query_params)
+        return self.connection.search(index=self.index_name, body=body, **query_params)
 
     def search(self, query, factory=None, **query_params):
         """
@@ -296,24 +274,17 @@ class WildcardHPSCatalog(object):
             # created already... we'll output a warning here to
             # remind
             logger.warn(
-                "HPS_FORCE_ENABLE active... please make sure your indexes "
-                "and mappings have already been created!")
+                "HPS_FORCE_ENABLE active... please make sure your indexes and mappings have already been created!"
+            )
 
-        return (
-            force_enabled
-            or (
-                self.registry
-                and self.registry.enabled
-                and self.catalog_converted))
+        return force_enabled or (self.registry and self.registry.enabled and self.catalog_converted)
 
     def get_setting(self, name, default=None):
         return getattr(self.registry, name, default)
 
-    def catalog_object(self, obj, uid=None, idxs=[], update_metadata=1,
-                       pghandler=None):
-        if idxs != ['getObjPositionInParent']:
-            self.catalogtool._old_catalog_object(
-                obj, uid, idxs, update_metadata, pghandler)
+    def catalog_object(self, obj, uid=None, idxs=[], update_metadata=1, pghandler=None):
+        if idxs != ["getObjPositionInParent"]:
+            self.catalogtool._old_catalog_object(obj, uid, idxs, update_metadata, pghandler)
 
         if not self.enabled:
             return
@@ -355,16 +326,14 @@ class WildcardHPSCatalog(object):
         except NotFoundError:
             pass
         except TransportError as exc:
-            if exc.error != 'illegal_argument_exception':
+            if exc.error != "illegal_argument_exception":
                 raise
             conn.indices.delete_alias(index="_all", name=self.real_index_name)
 
         if self.index_version:
             try:
-                conn.indices.delete_alias(
-                    self.index_name,
-                    self.real_index_name)
-            except NotFoundError:
+                conn.indices.delete_alias(index=self.index_name, name=self.real_index_name)
+            except TransportError:
                 pass
         self.convertToOpenSearch()
 
@@ -383,9 +352,7 @@ class WildcardHPSCatalog(object):
             if check_perms:
                 return self.catalogtool._old_searchResults(REQUEST, **kw)
             else:
-                return self.catalogtool._old_unrestrictedSearchResults(
-                    REQUEST,
-                    **kw)
+                return self.catalogtool._old_unrestrictedSearchResults(REQUEST, **kw)
 
         if isinstance(REQUEST, dict):
             query = REQUEST.copy()
@@ -395,31 +362,28 @@ class WildcardHPSCatalog(object):
         # IF 'trashed' should NOT be included by default AND the caller hasn't explicitly
         # told us a value for how to query 'trashed', THEN explicitly exclude 'trashed'
         # entries
-        if not self.include_trashed_by_default and 'trashed' not in kw:
-            kw['trashed'] = False
+        if not self.include_trashed_by_default and "trashed" not in kw:
+            kw["trashed"] = False
 
         query.update(kw)
 
         if check_perms:
-            show_inactive = query.get('show_inactive', False)
+            show_inactive = query.get("show_inactive", False)
             if isinstance(REQUEST, dict) and not show_inactive:
-                show_inactive = 'show_inactive' in REQUEST
+                show_inactive = "show_inactive" in REQUEST
 
             user = _getAuthenticatedUser(self.catalogtool)
-            query['allowedRolesAndUsers'] = \
-                self.catalogtool._listAllowedRolesAndUsers(user)
+            query["allowedRolesAndUsers"] = self.catalogtool._listAllowedRolesAndUsers(user)
 
-            if not show_inactive and not _checkPermission(
-                    AccessInactivePortalContent, self.catalogtool):
-                query['effectiveRange'] = DateTime()
+            if not show_inactive and not _checkPermission(AccessInactivePortalContent, self.catalogtool):
+                query["effectiveRange"] = DateTime()
         orig_query = query.copy()
-        logger.debug('Running query: %s' % repr(orig_query))
+        logger.debug("Running query: %s" % repr(orig_query))
         try:
             results = self.search(query)
             return results
         except Exception:
-            logger.error(
-                'Error running Query: {0!r}'.format(orig_query), exc_info=True)
+            logger.error("Error running Query: {0!r}".format(orig_query), exc_info=True)
             return self.catalogtool._old_searchResults(REQUEST, **kw)
 
     def convertToOpenSearch(self):
@@ -427,9 +391,7 @@ class WildcardHPSCatalog(object):
         self.catalogtool._p_changed = True
         adapter = getMultiAdapter((getRequest(), self), IMappingProvider)
         mapping = adapter()
-        self.connection.indices.put_mapping(
-            body=mapping,
-            index=self.index_name)
+        self.connection.indices.put_mapping(body=mapping, index=self.index_name)
 
     @property
     def instance_prefix(self):
@@ -442,10 +404,8 @@ class WildcardHPSCatalog(object):
             iprefix += "-"
         else:
             iprefix = ""
-        site_path = '-'.join(self.catalogtool.getPhysicalPath()[1:]).lower()
-        return "{prefix}{site}".format(
-            prefix=iprefix,
-            site=site_path)
+        site_path = "-".join(self.catalogtool.getPhysicalPath()[1:]).lower()
+        return "{prefix}{site}".format(prefix=iprefix, site=site_path)
 
     @property
     def index_version(self):
@@ -464,5 +424,5 @@ class WildcardHPSCatalog(object):
     @property
     def real_index_name(self):
         if self.index_version:
-            return '%s_%i' % (self.index_name, self.index_version)
+            return "%s_%i" % (self.index_name, self.index_version)
         return self.index_name
