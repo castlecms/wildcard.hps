@@ -1,23 +1,20 @@
+import multiprocessing
+import os
+import random
+
+import requests
+import transaction
 from AccessControl.SecurityManagement import newSecurityManager
 from AccessControl.SecurityManager import setSecurityPolicy
-from lxml.html import fromstring
-from lxml.html import tostring
+from lxml.html import fromstring, tostring
 from plone import api
 from plone.app.textfield.value import RichTextValue
-from Products.CMFCore.tests.base.security import OmnipotentUser
-from Products.CMFCore.tests.base.security import PermissiveSecurityPolicy
+from Products.CMFCore.tests.base.security import OmnipotentUser, PermissiveSecurityPolicy
 from Testing.makerequest import makerequest
 from unidecode import unidecode
 from zope.component.hooks import setSite
 
-import multiprocessing
-import os
-import random
-import requests
-import transaction
-
-
-SITE_ID = 'Plone3'
+SITE_ID = "Plone3"
 
 
 def spoofRequest(app):
@@ -31,31 +28,34 @@ def spoofRequest(app):
     newSecurityManager(None, OmnipotentUser().__of__(app.acl_users))
     return makerequest(app)
 
-# Enable Faux HTTP request object
-app = spoofRequest(app)  # noqa
 
-_dir = os.path.join(os.getcwd(), 'src')
+# Enable Faux HTTP request object
+app = spoofRequest(app)  # noqa: F821
+
+_dir = os.path.join(os.getcwd(), "src")
 
 _links = []
 _toparse = []
 
 
 def parse_url(url):
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=5.0)
     return resp.content
 
 
 pool = multiprocessing.Pool(processes=8)
+
+
 def parse_urls(urls):
     return pool.map(parse_url, urls)
 
 
-class DataReader(object):
-    base_url = 'https://en.wikipedia.org'
-    base_content_url = base_url + '/wiki/'
-    start_page = base_content_url + 'Main_Page'
-    title_selector = '#firstHeading'
-    content_selector = '#bodyContent'
+class DataReader:
+    base_url = "https://en.wikipedia.org"
+    base_content_url = base_url + "/wiki/"
+    start_page = base_content_url + "Main_Page"
+    title_selector = "#firstHeading"
+    content_selector = "#bodyContent"
 
     def __init__(self):
         self.parsed = []
@@ -79,9 +79,9 @@ class DataReader(object):
             html = fromstring(self.toprocess.pop(0))
 
             # get more links!
-            for el in html.cssselect('a'):
-                url = el.attrib.get('href', '')
-                if url.startswith('/'):
+            for el in html.cssselect("a"):
+                url = el.attrib.get("href", "")
+                if url.startswith("/"):
                     url = self.base_url + url
                 if url.startswith(self.base_content_url) and url not in self.parsed:
                     self.toparse.append(url)
@@ -92,9 +92,8 @@ class DataReader(object):
                 continue
 
             yield {
-                'title': title,
-                'text': RichTextValue(body, mimeType='text/html',
-                                      outputMimeType='text/x-html-safe'),
+                "title": title,
+                "text": RichTextValue(body, mimeType="text/html", outputMimeType="text/x-html-safe"),
             }
 
 
@@ -105,7 +104,7 @@ def importit(app):
     per_folder = 50
     num_folders = 6
     max_depth = 4
-    portal_types = ['Document', 'News Item', 'Event']
+    portal_types = ["Document", "News Item", "Event"]
     data = iter(DataReader())
 
     def populate(parent, count=0, depth=0):
@@ -113,29 +112,35 @@ def importit(app):
             return count
         for fidx in range(num_folders):
             count += 1
-            fid = 'folder%i' % fidx
+            fid = f"folder{fidx}"
             if fid in parent.objectIds():
                 folder = parent[fid]
             else:
                 folder = api.content.create(
-                    type='Folder', title="Folder %i" % fidx, id=fid,
-                    exclude_from_nav=True, container=parent)
+                    type="Folder", title=f"Folder {fidx}", id=fid, exclude_from_nav=True, container=parent
+                )
             for didx in range(per_folder):
                 count += 1
-                pid = 'page%i' % didx
+                pid = f"page{didx}"
                 if pid not in folder.objectIds():
                     try:
                         api.content.create(
-                            type=random.choice(portal_types), id=pid, container=folder,
-                            exclude_from_nav=True, **data.next())
-                        print('created ', count)
+                            type=random.choice(portal_types),  # noqa: S311
+                            id=pid,
+                            container=folder,
+                            exclude_from_nav=True,
+                            **data.next(),
+                        )
+                        print("created ", count)
                     except Exception:
-                        print('skipping', count)
+                        print("skipping", count)
             count = populate(folder, count, depth + 1)
-        print('commiting')
+        print("commiting")
         transaction.commit()
         app._p_jar.cacheMinimize()
         return count
+
     populate(site)
+
 
 importit(app)

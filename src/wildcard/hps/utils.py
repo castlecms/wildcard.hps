@@ -1,51 +1,50 @@
-# -*- coding: utf-8 -*-
 import os
 
-from wildcard.hps.interfaces import IWildcardHPSSettings
 from plone.registry.interfaces import IRegistry
-from zope.component import getUtility
-from zope.component import ComponentLookupError
-
+from wildcard.hps.interfaces import IWildcardHPSSettings
+from zope.component import ComponentLookupError, getUtility
 
 try:
     from plone.uuid.interfaces import IUUID
 except ImportError:
+
     def IUUID(obj, default=None):
         return default
 
 
 def getUID(obj):
     value = IUUID(obj, None)
-    if not value and hasattr(obj, 'UID'):
+    if not value and hasattr(obj, "UID"):
         value = obj.UID()
     return value
 
 
 def getExternalOnlyIndexes():
-    override_values = os.getenv('HPS_FORCE_EXTERNAL_INDEXES', None)
+    override_values = os.getenv("HPS_FORCE_EXTERNAL_INDEXES", None)
     if override_values is not None:
-        return set([a.strip() for a in override_values.split(",")])
+        return set({a.strip() for a in override_values.split(",")})
 
     try:
         # default to Title, Description, and SearchableText
-        return getUtility(IRegistry).forInterface(
-            IWildcardHPSSettings,
-            check=False
-        ).external_only_indexes or {'Title', 'Description', 'SearchableText'}
+        return getUtility(IRegistry).forInterface(IWildcardHPSSettings, check=False).external_only_indexes or {
+            "Title",
+            "Description",
+            "SearchableText",
+        }
     # a ComponentLookupError would probably indicate that the wildcard.hps addon hasn't
     # been installed in the site, but maybe that HPS_FORCE_ENABLED is set to Yes/On/True
     # which would mean that the registry wouldn't have any settings associated with the
     # IWildcardHPSSettings... I think the most reasonable option in this state is to just
     # use the default set
     except (KeyError, AttributeError, ComponentLookupError):
-        return {'Title', 'Description', 'SearchableText'}
+        return {"Title", "Description", "SearchableText"}
 
 
 def getTruthyEnv(key):
     if key is None:
         return False
     var = os.getenv(key)
-    return var is not None and var.lower().strip() in ('yes', 'true', '1', 'on')
+    return var is not None and var.lower().strip() in ("yes", "true", "1", "on")
 
 
 def getIntOrNone(key):

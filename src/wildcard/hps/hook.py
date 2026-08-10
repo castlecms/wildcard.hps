@@ -1,67 +1,55 @@
-# -*- coding: utf-8 -*-
-from wildcard.hps.indexes import getIndex
-from wildcard.hps.interfaces import IAdditionalIndexDataProvider
-from wildcard.hps.utils import getExternalOnlyIndexes
-from wildcard.hps.utils import getUID
-from plone import api
-from plone.app.uuid.utils import uuidToObject
-from plone.indexer.interfaces import IIndexableObject
-from plone.indexer.interfaces import IIndexer
-from plone.uuid.interfaces import IUUID
-from Products.CMFCore.interfaces import ISiteRoot
-from zope.component import getAdapters
-from zope.component import queryMultiAdapter
-from zope.component.hooks import getSite
-from zope.component.hooks import setSite
-
 import logging
 import random
-import six
 import time
 import traceback
+
+import six
 import transaction
 import urllib3
+from plone import api
+from plone.app.uuid.utils import uuidToObject
+from plone.indexer.interfaces import IIndexableObject, IIndexer
+from plone.uuid.interfaces import IUUID
+from Products.CMFCore.interfaces import ISiteRoot
+from wildcard.hps.indexes import getIndex
+from wildcard.hps.interfaces import IAdditionalIndexDataProvider
+from wildcard.hps.utils import getExternalOnlyIndexes, getUID
+from zope.component import getAdapters, queryMultiAdapter
+from zope.component.hooks import getSite, setSite
+
+logger = logging.getLogger("wildcard.hps")
 
 
-logger = logging.getLogger('wildcard.hps')
-
-
-def index_batch(remove, index, positions, hpscatalog=None):  # noqa: C901
+def index_batch(remove, index, positions, hpscatalog=None):
     if hpscatalog is None:
         from wildcard.hps.opensearch import WildcardHPSCatalog
-        hpscatalog = WildcardHPSCatalog(api.portal.get_tool('portal_catalog'))
+
+        hpscatalog = WildcardHPSCatalog(api.portal.get_tool("portal_catalog"))
 
     setSite(api.portal.get())
     conn = hpscatalog.connection
-    bulk_size = hpscatalog.get_setting('bulk_size', 50)
+    bulk_size = hpscatalog.get_setting("bulk_size", 50)
 
     if len(remove) > 0:
         bulk_data = []
         for uid in remove:
-            bulk_data.append({
-                'delete': {
-                    '_index': hpscatalog.index_name,
-                    '_id': uid
-                }
-            })
-        result = hpscatalog.connection.bulk(
-            index=hpscatalog.index_name,
-            body=bulk_data)
+            bulk_data.append({"delete": {"_index": hpscatalog.index_name, "_id": uid}})
+        result = hpscatalog.connection.bulk(index=hpscatalog.index_name, body=bulk_data)
 
         if "errors" in result and result["errors"] is True:
-            logger.error("Error in bulk indexing removal: %s" % result)
+            logger.error(f"Error in bulk indexing removal: {result}")
 
     if len(index) > 0:
         if type(index) in (list, tuple, set):
             # does not contain objects, must be async, convert to dict
-            index = dict([(k, None) for k in index])
+            index = {(k, None) for k in index}
         bulk_data = []
 
         for uid, obj in index.items():
             # If content has been moved (ie by a contentrule) then the object
             # passed here is the original object, not the moved one.
             # So if there is a uuid, we use this to get the correct object.
-            # See https://github.com/collective/wildcard.hps/issues/65 # noqa
+            # See https://github.com/collective/wildcard.hps/issues/65
             if uid is not None:
                 obj = uuidToObject(uid)
 
@@ -69,40 +57,31 @@ def index_batch(remove, index, positions, hpscatalog=None):  # noqa: C901
                 obj = uuidToObject(uid)
                 if obj is None:
                     continue
-            bulk_data.extend([{
-                'index': {
-                    '_index': hpscatalog.index_name,
-                    '_id': uid
-                }
-            }, get_index_data(obj, hpscatalog)])
+            bulk_data.extend([
+                {"index": {"_index": hpscatalog.index_name, "_id": uid}},
+                get_index_data(obj, hpscatalog),
+            ])
             if len(bulk_data) % bulk_size == 0:
-                result = conn.bulk(
-                    index=hpscatalog.index_name,
-                    body=bulk_data)
+                result = conn.bulk(index=hpscatalog.index_name, body=bulk_data)
 
                 if "errors" in result and result["errors"] is True:
-                    logger.error("Error in bulk indexing: %s" % result)
+                    logger.error(f"Error in bulk indexing: {result}")
 
                 bulk_data = []
 
         if len(bulk_data) > 0:
-            result = conn.bulk(
-                index=hpscatalog.index_name,
-                body=bulk_data)
+            result = conn.bulk(index=hpscatalog.index_name, body=bulk_data)
 
             if "errors" in result and result["errors"] is True:
-                logger.error("Error in bulk indexing: %s" % result)
+                logger.error(f"Error in bulk indexing: {result}")
 
     if len(positions) > 0:
         bulk_data = []
-        index = getIndex(hpscatalog.catalogtool._catalog, 'getObjPositionInParent')
+        index = getIndex(hpscatalog.catalogtool._catalog, "getObjPositionInParent")
         for uid, ids in positions.items():
-            if uid == '/':
-                parent = getSite()
-            else:
-                parent = uuidToObject(uid)
+            parent = getSite() if uid == "/" else uuidToObject(uid)
             if parent is None:
-                logger.warn('could not find object to index positions')
+                logger.warn("could not find object to index positions")
                 continue
             for _id in ids:
                 ob = parent[_id]
@@ -110,27 +89,18 @@ def index_batch(remove, index, positions, hpscatalog=None):  # noqa: C901
                 try:
                     value = index.get_value(wrapped_object)
                 except Exception:
+                    logger.error(f"Could not get index value for {wrapped_object}")
                     continue
-                bulk_data.extend([{
-                    'update': {
-                        '_index': hpscatalog.index_name,
-                        '_id': IUUID(ob)
-                    }
-                }, {
-                    'doc': {
-                        'getObjPositionInParent': value
-                    }
-                }])
+                bulk_data.extend([
+                    {"update": {"_index": hpscatalog.index_name, "_id": IUUID(ob)}},
+                    {"doc": {"getObjPositionInParent": value}},
+                ])
                 if len(bulk_data) % bulk_size == 0:
-                    conn.bulk(
-                        index=hpscatalog.index_name,
-                        body=bulk_data)
+                    conn.bulk(index=hpscatalog.index_name, body=bulk_data)
                     bulk_data = []
 
         if len(bulk_data) > 0:
-            conn.bulk(
-                index=hpscatalog.index_name,
-                body=bulk_data)
+            conn.bulk(index=hpscatalog.index_name, body=bulk_data)
 
 
 def get_wrapped_object(obj, hpscatalog):
@@ -138,35 +108,31 @@ def get_wrapped_object(obj, hpscatalog):
     if not IIndexableObject.providedBy(obj):
         # This is the CMF 2.2 compatible approach, which should be used
         # going forward
-        wrapper = queryMultiAdapter((obj, hpscatalog.catalogtool),
-                                    IIndexableObject)
-        if wrapper is not None:
-            wrapped_object = wrapper
-        else:
-            wrapped_object = obj
+        wrapper = queryMultiAdapter((obj, hpscatalog.catalogtool), IIndexableObject)
+        wrapped_object = wrapper if wrapper is not None else obj
     else:
         wrapped_object = obj
     return wrapped_object
 
 
-def get_index_data(obj, hpscatalog):  # noqa: C901
+def get_index_data(obj, hpscatalog):
     catalog = hpscatalog.catalogtool._catalog
 
     wrapped_object = get_wrapped_object(obj, hpscatalog)
     index_data = {}
-    for index_name in catalog.indexes.keys():
+    for index_name in catalog.indexes:
         index = getIndex(catalog, index_name)
         if index is not None:
             try:
                 value = index.get_value(wrapped_object)
-            except Exception as exc:  # NOQA W0703
-                if hasattr(obj, 'getPhysicalPath'):
+            except Exception as exc:
+                if hasattr(obj, "getPhysicalPath"):
                     path = "/".join(obj.getPhysicalPath())
                     logger.error(f"Error indexing value: {path}: {index_name}\n{exc}")
                 else:  # portal obj has no getPhysicalPath attr for one
                     logger.error(f"Error indexing value: {obj}: {index_name}\n{exc}")
                 value = None
-            if value in (None, 'None'):
+            if value in (None, "None"):
                 # yes, we'll index null data...
                 value = None
 
@@ -174,10 +140,10 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
             # does not barf when we're trying to send data to ES.
             if six.PY2:
                 if isinstance(value, str):
-                    value = six.text_type(value, 'utf-8', 'ignore')
+                    value = six.text_type(value, "utf-8", "ignore")
             else:
                 if isinstance(value, bytes):
-                    value = value.decode('utf-8', 'ignore')
+                    value = value.decode("utf-8", "ignore")
 
             index_data[index_name] = value
 
@@ -192,16 +158,15 @@ def get_index_data(obj, hpscatalog):  # noqa: C901
                 val = indexer()
                 if six.PY2:
                     if isinstance(value, str):
-                        value = six.text_type(value, 'utf-8', 'ignore')
+                        value = six.text_type(value, "utf-8", "ignore")
                 else:
                     if isinstance(value, bytes):
-                        value = value.decode('utf-8', 'ignore')
+                        value = value.decode("utf-8", "ignore")
                 index_data[name] = val
             except Exception:
-                logger.error('Error indexing value: %s: %s\n%s' % (
-                    '/'.join(obj.getPhysicalPath()),
-                    name,
-                    traceback.format_exc()))
+                logger.error(
+                    f"Error indexing value: {'/'.join(obj.getPhysicalPath())}: {name}\n{traceback.format_exc()}"
+                )
         else:
             val = getattr(obj, name, None)
             if callable(val):
@@ -230,15 +195,14 @@ try:
                     retries += 1
                     if retries >= 4:
                         raise
-                    time.sleep(random.choice([0.5, 0.75, 1, 1.25, 1.5]))
+                    time.sleep(random.choice([0.5, 0.75, 1, 1.25, 1.5]))  # noqa: S311
 
     CELERY_INSTALLED = True
 except ImportError:
     CELERY_INSTALLED = False
 
 
-class CommitHook(object):
-
+class CommitHook:
     def __init__(self, hpscatalog):
         self.remove = set()
         self.index = {}
@@ -247,9 +211,8 @@ class CommitHook(object):
 
     def schedule_celery(self):
         index_batch_async.apply_async(
-            args=[self.remove, self.index.keys(), self.positions],
-            kwargs={},
-            without_transaction=True)
+            args=[self.remove, self.index.keys(), self.positions], kwargs={}, without_transaction=True
+        )
 
     def __call__(self, trns):
         if not trns:
@@ -268,7 +231,8 @@ class CommitHook(object):
 def getHook(hpscatalog=None):
     if hpscatalog is None:
         from wildcard.hps.opensearch import WildcardHPSCatalog
-        hpscatalog = WildcardHPSCatalog(api.portal.get_tool('portal_catalog'))
+
+        hpscatalog = WildcardHPSCatalog(api.portal.get_tool("portal_catalog"))
     if not hpscatalog.enabled:
         return
 
@@ -311,7 +275,7 @@ def add_object(hpscatalog, obj):
 def index_positions(obj, ids):
     hook = getHook()
     if ISiteRoot.providedBy(obj):
-        hook.positions['/'] = ids
+        hook.positions["/"] = ids
     else:
         uid = getUID(obj)
         if uid is None:

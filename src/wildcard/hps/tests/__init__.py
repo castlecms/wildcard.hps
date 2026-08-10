@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# coding: utf-8
 from wildcard.hps import hook
 from wildcard.hps.opensearch import WildcardHPSCatalog
 from wildcard.hps.interfaces import IWildcardHPSSettings
@@ -15,15 +13,14 @@ import unittest2 as unittest
 
 
 class BaseTest(unittest.TestCase):
-
     layer = WildcardHPS_INTEGRATION_TESTING
 
     def setUp(self):
-        super(BaseTest, self).setUp()
-        self.portal = self.layer['portal']
-        self.request = self.layer['request']
-        self.request.environ['testing'] = True
-        self.app = self.layer['app']
+        super().setUp()
+        self.portal = self.layer["portal"]
+        self.request = self.layer["request"]
+        self.request.environ["testing"] = True
+        self.app = self.layer["app"]
 
         registry = getUtility(IRegistry)
         settings = registry.forInterface(IWildcardHPSSettings, check=False)
@@ -32,7 +29,7 @@ class BaseTest(unittest.TestCase):
         settings.enabled = True
         settings.sniffer_timeout = 0.0
 
-        self.catalog = getToolByName(self.portal, 'portal_catalog')
+        self.catalog = getToolByName(self.portal, "portal_catalog")
         self.hpscatalog = WildcardHPSCatalog(self.catalog)
         self.catalog.manage_catalogRebuild()
         # need to commit here so all tests start with a baseline
@@ -48,9 +45,10 @@ class BaseTest(unittest.TestCase):
         _hook.index = {}
 
     def tearDown(self):
-        super(BaseTest, self).tearDown()
+        super().tearDown()
         self.hpscatalog.connection.indices.delete_alias(
-            index=self.hpscatalog.real_index_name, name=self.hpscatalog.index_name)
+            index=self.hpscatalog.real_index_name, name=self.hpscatalog.index_name
+        )
         self.hpscatalog.connection.indices.delete(index=self.hpscatalog.real_index_name)
         self.clearTransactionEntries()
         # Wait for OpenSearch to remove the index
@@ -58,5 +56,4 @@ class BaseTest(unittest.TestCase):
 
 
 class BaseFunctionalTest(BaseTest):
-
     layer = WildcardHPS_FUNCTIONAL_TESTING

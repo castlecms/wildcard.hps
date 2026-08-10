@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+from plone import api
 from wildcard.hps import hook
 from wildcard.hps.opensearch import WildcardHPSCatalog
-from plone import api
 
 
-def catalog_object(self, object, uid=None, idxs=[],
-                   update_metadata=1, pghandler=None):
+def catalog_object(self, object, uid=None, idxs=None, update_metadata=1, pghandler=None):  # noqa: A002
+    if not idxs:
+        idxs = []
     hpscatalog = WildcardHPSCatalog(self)
     return hpscatalog.catalog_object(object, uid, idxs, update_metadata, pghandler)
 
@@ -26,13 +26,13 @@ def safeSearchResults(self, REQUEST=None, **kw):
 
 
 def manage_catalogRebuild(self, *args, **kwargs):
-    """ need to be publishable """
+    """need to be publishable"""
     hpscatalog = WildcardHPSCatalog(self)
     return hpscatalog.manage_catalogRebuild(**kwargs)
 
 
 def manage_catalogClear(self, *args, **kwargs):
-    """ need to be publishable """
+    """need to be publishable"""
     hpscatalog = WildcardHPSCatalog(self)
     return hpscatalog.manage_catalogClear(*args, **kwargs)
 
@@ -40,15 +40,13 @@ def manage_catalogClear(self, *args, **kwargs):
 def _unindexObject(self, ob):
     # same reason as the patch above, we need the actual object passed along
     # this handle dexterity types
-    path = '/'.join(ob.getPhysicalPath())
+    path = "/".join(ob.getPhysicalPath())
     return self.uncatalog_object(path, obj=ob)
 
 
-def moveObjectsByDelta(self, ids, delta, subset_ids=None,
-                       suppress_events=False):
-    res = self._old_moveObjectsByDelta(ids, delta, subset_ids=subset_ids,
-                                       suppress_events=suppress_events)
-    hpscatalog = WildcardHPSCatalog(api.portal.get_tool('portal_catalog'))
+def moveObjectsByDelta(self, ids, delta, subset_ids=None, suppress_events=False):
+    res = self._old_moveObjectsByDelta(ids, delta, subset_ids=subset_ids, suppress_events=suppress_events)
+    hpscatalog = WildcardHPSCatalog(api.portal.get_tool("portal_catalog"))
     if hpscatalog.enabled:
         if subset_ids is None:
             subset_ids = self.idsInOrder()
@@ -56,11 +54,9 @@ def moveObjectsByDelta(self, ids, delta, subset_ids=None,
     return res
 
 
-def PloneSite_moveObjectsByDelta(self, ids, delta, subset_ids=None,
-                                 suppress_events=False):
-    res = self._old_moveObjectsByDelta(ids, delta, subset_ids=subset_ids,
-                                       suppress_events=suppress_events)
-    hpscatalog = WildcardHPSCatalog(api.portal.get_tool('portal_catalog'))
+def PloneSite_moveObjectsByDelta(self, ids, delta, subset_ids=None, suppress_events=False):
+    res = self._old_moveObjectsByDelta(ids, delta, subset_ids=subset_ids, suppress_events=suppress_events)
+    hpscatalog = WildcardHPSCatalog(api.portal.get_tool("portal_catalog"))
     if hpscatalog.enabled:
         if subset_ids is None:
             objects = list(self._objects)
