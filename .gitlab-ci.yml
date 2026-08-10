@@ -1,0 +1,3 @@
+include:
+  - remote: 'https://git.imsweb.com/plone/imsplone/-/raw/main/ci_cd/general.yml'
+  - remote: 'https://git.imsweb.com/plone/imsplone/-/raw/main/ci_cd/docs.yml'

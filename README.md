@@ -1,5 +1,6 @@
-wildcard.hps
-============
+ims.wildcardhps
+===============
+This package was forked from [wildcard.hps](https://github.com/castlecms/wildcard.hps)
 
 CastleCMS and Plone integration with [OpenSearch](https://opensearch.org)
 

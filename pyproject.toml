@@ -1,0 +1,133 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ims.wildcardhps"
+dynamic = ["version"]
+requires-python = ">=3.11"
+description = "User related template customizations"
+classifiers = [
+    "Framework :: Plone :: 6.2",
+    "Programming Language :: Python",
+]
+authors = [
+    { name = "Eric Wohnlich", email = "wohnlice@imsweb.com" }
+]
+license = { text = "GPL" }
+
+dependencies = [
+    "opensearch-py"
+]
+
+[project.urls]
+homepage = "https://git.imsweb.com/plone/ims.wildcardhps"
+
+[project.optional-dependencies]
+test = ["plone.app.testing", "pytest_plone"]
+
+[project.entry-points."plone.autoinclude.plugin"]
+target = "plone"
+
+[tool.bandit]
+exclude_dirs = ["*/tests/*"]
+skips = ["B404", "B603"]
+
+[tool.coverage.report]
+include = ["src/wildcard/hps/*"]
+omit = ["venv", "*/test*", "*upgrades.py"]
+
+[tool.towncrier]
+directory = "changes"
+filename = "CHANGES.md"
+package = "ims.wildcardhps"
+issue_format = "[{issue}]: https://squishlist.com/ims/plone/{issue}"
+
+[tool.towncrier.fragment.feature]
+[tool.towncrier.fragment.bugfix]
+[tool.towncrier.fragment.docs]
+[tool.towncrier.fragment.breaking]
+name = "Major Change"
+check = true
+
+[tool.towncrier.fragment.chore]
+name = "Other tasks"
+showcontent = false
+check = false
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+fix = true
+lint.select = [
+    # flake8-2020
+    "YTT",
+    # flake8-bandit
+    "S",
+    # flake8-bugbear
+    "B",
+    # flake8-builtins
+    "A",
+    # flake8-comprehensions
+    "C4",
+    # flake8-debugger
+    "T10",
+    # flake8-simplify
+    "SIM",
+    # mccabe
+    "C90",
+    # pycodestyle
+    "E", "W",
+    # pyflakes
+    "F",
+    # pygrep-hooks
+    "PGH",
+    # pyupgrade
+    "UP",
+    # ruff
+    "RUF",
+]
+lint.ignore = [
+    # DoNotAssignLambda
+    "E731",
+    "S602",
+    "S314",
+    "S324",
+    "RUF001",
+    "C901"
+]
+
+[tool.ruff.format]
+preview = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S106"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+path = "src/wildcard/hps/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ims"]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = "coverage html"
+cov = [
+    "test-cov",
+    "cov-report",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:Products.*",
+    "ignore::DeprecationWarning:plone.*",
+    "ignore::DeprecationWarning:z3c.*",
+    "ignore::DeprecationWarning:zope.*",
+    "ignore::DeprecationWarning:webob.*",
+    "ignore::DeprecationWarning:pkg_resources.*",
+]
